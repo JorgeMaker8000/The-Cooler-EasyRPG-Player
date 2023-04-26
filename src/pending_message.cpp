@@ -1,5 +1,6 @@
 #include "pending_message.h"
 #include "game_variables.h"
+#include "game_strings.h"
 #include "game_actors.h"
 #include "game_message.h"
 #include <lcf/data.h>
@@ -123,6 +124,15 @@ std::string PendingMessage::ApplyTextInsertingCommands(std::string input, uint32
 
 			int variable_value = Main_Data::game_variables->Get(value);
 			output.append(std::to_string(variable_value));
+
+			start_copy = iter;
+		} else if (ch == 'T' || ch == 't') {
+			auto parse_ret = Game_Message::ParseString(iter, end, escape_char, true);
+			iter = parse_ret.next;
+			int value = parse_ret.value;
+
+			Game_Strings::Str_t string = Main_Data::game_strings->Get(value);
+			output.append((std::string)string);
 
 			start_copy = iter;
 		}
