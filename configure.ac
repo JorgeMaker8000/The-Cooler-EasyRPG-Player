@@ -5,7 +5,7 @@ AC_PREREQ([2.69])
 
 # version magic
 m4_define([ep_version_major], [0])
-m4_define([ep_version_minor], [7])
+m4_define([ep_version_minor], [8])
 m4_define([ep_version_patch], [0])
 m4_define([ep_version_tweak], [0])
 m4_define([ep_version], [ep_version_major.ep_version_minor])
@@ -68,7 +68,7 @@ AC_DEFUN([EP_PKG_CHECK],[ dnl VARIABLE-PREFIX, MODULES, [DESCRIPTION], [DEFAULT=
 	])
 ])
 
-PKG_CHECK_MODULES([LCF],[liblcf])
+PKG_CHECK_MODULES([LCF],[liblcf >= 0.8])
 PKG_CHECK_MODULES([PIXMAN],[pixman-1])
 PKG_CHECK_MODULES([ZLIB],[zlib])
 PKG_CHECK_MODULES([PNG],[libpng])
@@ -149,8 +149,8 @@ esac
 # Pass the conditionals to automake
 AM_CONDITIONAL([MACOS], [test "$EP_BUILD_MAC" = "YES"])
 
-# C++14 is mandatory
-AX_CXX_COMPILE_STDCXX(14, noext)
+# C++17 is mandatory
+AX_CXX_COMPILE_STDCXX(17, noext)
 
 # Checks for header files.
 AC_CHECK_HEADERS([cstdint cstdlib string iostream unistd.h wchar.h])

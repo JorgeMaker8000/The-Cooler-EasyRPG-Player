@@ -286,6 +286,10 @@ void AudioDecoderMidi::Reset() {
 	reset();
 }
 
+bool AudioDecoderMidi::IsPaused() const {
+	return paused;
+}
+
 int AudioDecoderMidi::FillBuffer(uint8_t* buffer, int length) {
 	if (loops_to_end) {
 		memset(buffer, '\0', length);
@@ -330,7 +334,7 @@ int AudioDecoderMidi::FillBuffer(uint8_t* buffer, int length) {
 
 void AudioDecoderMidi::SendMessageToAllChannels(uint32_t midi_msg) {
 	for (int channel = 0; channel < 16; channel++) {
-		midi_msg &= ~(0xF);
+		midi_msg &= ~(0xFu);
 		midi_msg |= (channel & 0x0F);
 		mididec->SendMidiMessage(midi_msg);
 	}

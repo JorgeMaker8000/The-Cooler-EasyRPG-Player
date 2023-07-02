@@ -83,14 +83,14 @@ void Game_Player::ReserveTeleport(int map_id, int x, int y, int direction, Telep
 }
 
 void Game_Player::ReserveTeleport(const lcf::rpg::SaveTarget& target) {
-	int map_id = target.map_id;
+	const auto* target_map_info = &Game_Map::GetMapInfo(target.map_id);
 
-	if (Game_Map::GetMapType(target.map_id) == lcf::rpg::TreeMap::MapType_area) {
+	if (target_map_info->type == lcf::rpg::TreeMap::MapType_area) {
 		// Area: Obtain the map the area belongs to
-		map_id = Game_Map::GetParentId(target.map_id);
+		target_map_info = &Game_Map::GetParentMapInfo(*target_map_info);
 	}
 
-	ReserveTeleport(map_id, target.map_x, target.map_y, Down, TeleportTarget::eSkillTeleport);
+	ReserveTeleport(target_map_info->ID, target.map_x, target.map_y, Down, TeleportTarget::eSkillTeleport);
 
 	if (target.switch_on) {
 		Main_Data::game_switches->Set(target.switch_id, true);
@@ -131,7 +131,7 @@ void Game_Player::MoveTo(int map_id, int x, int y) {
 	const auto map_changed = (GetMapId() != map_id);
 
 	Game_Character::MoveTo(map_id, x, y);
-	SetEncounterSteps(0);
+	SetTotalEncounterRate(0);
 	SetMenuCalling(false);
 
 	auto* vehicle = GetVehicle();
@@ -683,10 +683,10 @@ void Game_Player::UpdateEncounterSteps() {
 		return;
 	}
 
-	const auto encounter_rate = Game_Map::GetEncounterRate();
+	const auto encounter_steps = Game_Map::GetEncounterSteps();
 
-	if (encounter_rate <= 0) {
-		SetEncounterSteps(0);
+	if (encounter_steps <= 0) {
+		SetTotalEncounterRate(0);
 		return;
 	}
 
@@ -699,7 +699,7 @@ void Game_Player::UpdateEncounterSteps() {
 		return;
 	}
 
-	data()->encounter_steps += terrain->encounter_rate;
+	data()->total_encounter_rate += terrain->encounter_rate;
 
 	struct Row {
 		int ratio;
@@ -730,7 +730,7 @@ void Game_Player::UpdateEncounterSteps() {
 		{ INT_MAX, 3.0 / 2.0 }
 	};
 #endif
-	const auto ratio = GetEncounterSteps() / encounter_rate;
+	const auto ratio = GetTotalEncounterRate() / encounter_steps;
 
 	auto& idx = last_encounter_idx;
 	while (ratio > enc_table[idx+1].ratio) {
@@ -739,27 +739,27 @@ void Game_Player::UpdateEncounterSteps() {
 	const auto& row = enc_table[idx];
 
 	const auto pmod = row.pmod;
-	const auto p = (1.0f / float(encounter_rate)) * pmod * (float(terrain->encounter_rate) / 100.0f);
+	const auto p = (1.0f / float(encounter_steps)) * pmod * (float(terrain->encounter_rate) / 100.0f);
 
 	if (!Rand::PercentChance(p)) {
 		return;
 	}
 
-	SetEncounterSteps(0);
+	SetTotalEncounterRate(0);
 	SetEncounterCalling(true);
 }
 
-void Game_Player::SetEncounterSteps(int steps) {
+void Game_Player::SetTotalEncounterRate(int rate) {
 	last_encounter_idx = 0;
-	data()->encounter_steps = steps;
+	data()->total_encounter_rate = rate;
 }
 
 int Game_Player::GetDefaultPanX() {
-	return (Utils::RoundTo<int>(static_cast<float>(Player::screen_width) / TILE_SIZE / 2) - 1) * SCREEN_TILE_SIZE;
+	return (std::ceil(static_cast<float>(Player::screen_width) / TILE_SIZE / 2) - 1) * SCREEN_TILE_SIZE;
 }
 
 int Game_Player::GetDefaultPanY() {
-	return (Utils::RoundTo<int>(static_cast<float>(Player::screen_height) / TILE_SIZE / 2) - 1) * SCREEN_TILE_SIZE;
+	return (std::ceil(static_cast<float>(Player::screen_height) / TILE_SIZE / 2) - 1) * SCREEN_TILE_SIZE;
 }
 
 void Game_Player::LockPan() {

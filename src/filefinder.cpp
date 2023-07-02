@@ -68,6 +68,7 @@ namespace {
 	constexpr const auto SOUND_TYPES = Utils::MakeSvArray(
 			".opus", ".oga", ".ogg", ".wav", ".mp3", ".wma");
 	constexpr const auto FONTS_TYPES = Utils::MakeSvArray(".fon", ".fnt", ".bdf", ".ttf", ".ttc", ".otf", ".woff2", ".woff");
+	constexpr const auto TEXT_TYPES = Utils::MakeSvArray(".txt", ".csv");
 }
 
 FilesystemView FileFinder::Game() {
@@ -281,8 +282,7 @@ std::string FileFinder::GetPathInsidePath(StringView path_to, StringView path_in
 }
 
 std::string FileFinder::GetPathInsideGamePath(StringView path_in) {
-	// FIXME return FileFinder::GetPathInsidePath(ToString(Root().GetRootPath()), path_in);
-	return ToString(path_in);
+	return FileFinder::GetPathInsidePath(Game().GetFullPath(), path_in);
 }
 
 void FileFinder::Quit() {
@@ -359,6 +359,11 @@ std::string FileFinder::FindFont(StringView name) {
 	return find_generic(args);
 }
 
+std::string FileFinder::FindText(StringView name) {
+	DirectoryTree::Args args = { MakePath("Text", name), TEXT_TYPES, 1, true };
+	return find_generic(args);
+}
+
 Filesystem_Stream::InputStream open_generic(StringView dir, StringView name, DirectoryTree::Args& args) {
 	if (!Tr::GetCurrentTranslationId().empty()) {
 		auto tr_fs = Tr::GetCurrentTranslationFilesystem();
@@ -396,6 +401,11 @@ Filesystem_Stream::InputStream FileFinder::OpenSound(StringView name) {
 Filesystem_Stream::InputStream FileFinder::OpenFont(StringView name) {
 	DirectoryTree::Args args = { MakePath("Font", name), FONTS_TYPES, 1, false };
 	return open_generic("Font", name, args);
+}
+
+Filesystem_Stream::InputStream FileFinder::OpenText(StringView name) {
+	DirectoryTree::Args args = { MakePath("Text", name), TEXT_TYPES, 1, false };
+	return open_generic("Text", name, args);
 }
 
 bool FileFinder::IsMajorUpdatedTree() {

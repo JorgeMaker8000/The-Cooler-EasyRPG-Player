@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.13...3.24 FATAL_ERROR)
 
-project(EasyRPG_Player
-	VERSION 0.7
+project(EasyRPG_Player VERSION 0.8
 	DESCRIPTION "Interpreter for RPG Maker 2000/2003 games"
 	HOMEPAGE_URL "https://easyrpg.org"
 	LANGUAGES CXX)
@@ -15,8 +14,8 @@ include(PlayerBuildType)
 include(PlayerMisc)
 include(GetGitRevisionDescription)
 
-# C++14 is required
-set(CMAKE_CXX_STANDARD 14)
+# C++17 is required
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS ON)
 
@@ -69,9 +68,6 @@ add_library(${PROJECT_NAME} OBJECT
 	src/bitmap.cpp
 	src/bitmapfont.h
 	src/bitmapfont_glyph.h
-	src/bitmapfont_rmg2000.h
-	src/bitmapfont_ttyp0.h
-	src/bitmapfont_wqy.h
 	src/bitmap.h
 	src/bitmap_hslrgb.h
 	src/cache.cpp
@@ -206,6 +202,13 @@ add_library(${PROJECT_NAME} OBJECT
 	src/game_vehicle.h
 	src/game_windows.cpp
 	src/game_windows.h
+	src/generated/bitmapfont_rmg2000.h
+	src/generated/bitmapfont_ttyp0.h
+	src/generated/bitmapfont_wqy.h
+	src/generated/logo.h
+	src/generated/logo2.h
+	src/generated/shinonome_gothic.h
+	src/generated/shinonome_mincho.h
 	src/graphics.cpp
 	src/graphics.h
 	src/hslrgb.cpp
@@ -226,7 +229,6 @@ add_library(${PROJECT_NAME} OBJECT
 	src/instrumentation.cpp
 	src/instrumentation.h
 	src/keys.h
-	src/logo.h
 	src/main_data.cpp
 	src/main_data.h
 	src/maniac_patch.cpp
@@ -319,8 +321,6 @@ add_library(${PROJECT_NAME} OBJECT
 	src/screen.cpp
 	src/screen.h
 	src/shake.h
-	src/shinonome_gothic.h
-	src/shinonome_mincho.h
 	src/span.h
 	src/sprite_airshipshadow.cpp
 	src/sprite_airshipshadow.h
@@ -347,6 +347,7 @@ add_library(${PROJECT_NAME} OBJECT
 	src/state.cpp
 	src/state.h
 	src/std_clock.h
+	src/string_view.cpp
 	src/string_view.h
 	src/system.h
 	src/teleport_target.h
@@ -785,15 +786,17 @@ set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "")
 set(CMAKE_XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "org.easyrpg.player")
 
 # liblcf
-option(PLAYER_BUILD_LIBLCF "Instead of detecting liblcf the liblcf repository is cloned into lib/liblcf and built together with the Player. This is convenient for development" OFF)
-set(PLAYER_BUILD_LIBLCF_GIT "https://github.com/EasyRPG/liblcf.git" CACHE STRING "Git repository of liblcf to clone when building liblcf. Requires PLAYER_BUILD_LIBLCF=ON.")
+option(PLAYER_BUILD_LIBLCF "Instead of detecting liblcf, clone liblcf into lib/liblcf and build it along with the Player. This is convenient for development." OFF)
+set(PLAYER_BUILD_LIBLCF_GIT "https://github.com/EasyRPG/liblcf.git" CACHE STRING "Git repository of liblcf to clone. Requires PLAYER_BUILD_LIBLCF=ON.")
+set(PLAYER_BUILD_LIBLCF_BRANCH "master" CACHE STRING "Branch of the liblcf repository to clone. Requires PLAYER_BUILD_LIBLCF=ON.")
 
 if(PLAYER_BUILD_LIBLCF)
 	# liblcf is built as part of this cmake file
 	set(LIBLCF_PATH "${CMAKE_CURRENT_SOURCE_DIR}/lib/liblcf")
 	if(NOT EXISTS ${LIBLCF_PATH})
 		find_package(Git REQUIRED)
-		execute_process(COMMAND ${GIT_EXECUTABLE} clone "--depth=1"
+		execute_process(COMMAND ${GIT_EXECUTABLE} clone "--depth=1" "--branch"
+			"${PLAYER_BUILD_LIBLCF_BRANCH}"
 			"${PLAYER_BUILD_LIBLCF_GIT}"
 			"${LIBLCF_PATH}")
 	endif()
@@ -809,8 +812,9 @@ if(PLAYER_BUILD_LIBLCF)
 	target_link_libraries(${PROJECT_NAME} lcf)
 else()
 	# Use system package
-	find_package(liblcf REQUIRED CONFIG)
-	target_link_libraries(${PROJECT_NAME} liblcf::liblcf)
+	player_find_package(NAME liblcf VERSION 0.8
+		TARGET liblcf::liblcf
+		REQUIRED)
 endif()
 
 # Detect all required libraries
@@ -1264,6 +1268,10 @@ else()
 		target_link_libraries(easyrpg_libretro ${PROJECT_NAME})
 		set_target_properties(easyrpg_libretro PROPERTIES PREFIX "")
 		set(PLAYER_TEST_LIBRARIES "easyrpg_libretro")
+
+		if(WIN32)
+			set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT easyrpg_libretro)
+		endif()
 	elseif(ANDROID AND ${PLAYER_TARGET_PLATFORM} STREQUAL "SDL2")
 		add_library(easyrpg_android
 			src/platform/android/android.h
@@ -1472,7 +1480,7 @@ if(${PLAYER_AUDIO_BACKEND} MATCHES "^(SDL2|SDL1|libretro|psvita|3ds|switch|wii)$
 
 	if(TARGET Vorbis::vorbisfile)
 		message(STATUS "Ogg Vorbis playback: libvorbis")
-	elseif(TARGET tremor::tremor)
+	elseif(TARGET Tremor::Tremor)
 		message(STATUS "Ogg Vorbis playback: tremor")
 	else()
 		message(STATUS "Ogg Vorbis playback: None")
@@ -1492,7 +1500,7 @@ if(${PLAYER_AUDIO_BACKEND} MATCHES "^(SDL2|SDL1|libretro|psvita|3ds|switch|wii)$
 
 	if(TARGET speexdsp::speexdsp)
 		message(STATUS "Resampler: speexdsp")
-	elseif(Samplerate::Samplerate)
+	elseif(TARGET Samplerate::Samplerate)
 		message(STATUS "Resampler: libsamplerate")
 	else()
 		message(STATUS "Resampler: None")

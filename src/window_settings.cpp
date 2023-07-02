@@ -276,14 +276,22 @@ void Window_Settings::RefreshAudio() {
 void Window_Settings::RefreshEngine() {
 	auto& cfg = Player::player_config;
 
-	// FIXME: Remove the &cfg after moving to VS2022
+	// FIXME: Binding &cfg is not needed and generates a warning but requires it
+#ifdef _MSC_VER
 	AddOption(cfg.settings_autosave, [&cfg](){ cfg.settings_autosave.Toggle(); });
 	AddOption(cfg.settings_in_title, [&cfg](){ cfg.settings_in_title.Toggle(); });
 	AddOption(cfg.settings_in_menu, [&cfg](){ cfg.settings_in_menu.Toggle(); });
+#else
+	AddOption(cfg.settings_autosave, [](){ cfg.settings_autosave.Toggle(); });
+	AddOption(cfg.settings_in_title, [](){ cfg.settings_in_title.Toggle(); });
+	AddOption(cfg.settings_in_menu, [](){ cfg.settings_in_menu.Toggle(); });
+#endif
 }
 
 void Window_Settings::RefreshLicense() {
-	AddOption(MenuItem("EasyRPG Player", "The engine you are using :)", "GPLv3+"), [](){});
+	AddOption(MenuItem("EasyRPG Player", "The engine you are using :)", "GPLv3+"), [this](){
+		Push(eAbout);
+	});
 	AddOption(MenuItem("liblcf", "Handles RPG Maker 2000/2003 and EasyRPG projects", "MIT"), [](){});
 	AddOption(MenuItem("libpng", "For reading and writing PNG image files", "zlib"), [](){});
 	AddOption(MenuItem("zlib", "Implements deflate used in ZIP archives and PNG images", "zlib"), [](){});
@@ -367,9 +375,9 @@ void Window_Settings::RefreshInput() {
 
 	AddOption(MenuItem("Key/Button mapping", "Change the keybindings", ""),
 		[this]() { Push(eInputButtonCategory); });
-	AddOption(cfg.gamepad_swap_ab_and_xy, [&cfg](){ cfg.gamepad_swap_ab_and_xy.Toggle(); Input::ResetKeys(); });
-	AddOption(cfg.gamepad_swap_analog, [&cfg](){ cfg.gamepad_swap_analog.Toggle(); Input::ResetKeys(); });
-	AddOption(cfg.gamepad_swap_dpad_with_buttons, [&cfg](){ cfg.gamepad_swap_dpad_with_buttons.Toggle(); Input::ResetKeys(); });
+	AddOption(cfg.gamepad_swap_ab_and_xy, [&cfg](){ cfg.gamepad_swap_ab_and_xy.Toggle(); Input::ResetTriggerKeys(); });
+	AddOption(cfg.gamepad_swap_analog, [&cfg](){ cfg.gamepad_swap_analog.Toggle(); Input::ResetTriggerKeys(); });
+	AddOption(cfg.gamepad_swap_dpad_with_buttons, [&cfg](){ cfg.gamepad_swap_dpad_with_buttons.Toggle(); Input::ResetTriggerKeys(); });
 }
 
 void Window_Settings::RefreshButtonCategory() {

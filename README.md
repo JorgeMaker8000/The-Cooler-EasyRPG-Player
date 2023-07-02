@@ -82,6 +82,8 @@ Available options:
 EasyRPG Player is free software available under the GPLv3 license. See the file
 [COPYING] for license conditions. For Author information see [AUTHORS document].
 
+EasyRPG [Logo] and [Logo2] are licensed under the CC-BY-SA 4.0 license.
+
 
 ### 3rd party software
 
@@ -99,7 +101,7 @@ EasyRPG Player makes use of the following 3rd party software:
 
 * [Baekmuk] font family (Korean) - Copyright (c) 1986-2002 Kim Jeong-Hwan,
   provided under the Baekmuk License
-* [Shinonome] font familiy (Japanese) - Copyright (c) 1999-2000 Yasuyuki
+* [Shinonome] font family (Japanese) - Copyright (c) 1999-2000 Yasuyuki
   Furukawa and contributors, provided under public domain. Glyphs were added
   and modified for use in EasyRPG Player, all changes under public domain.
 * [ttyp0] font family - Copyright (c) 2012-2015 Uwe Waldmann, provided under
@@ -114,6 +116,8 @@ EasyRPG Player makes use of the following 3rd party software:
 [#easyrpg at irc.libera.chat]: https://kiwiirc.com/nextclient/#ircs://irc.libera.chat/#easyrpg?nick=rpgguest??
 [COPYING]: COPYING
 [AUTHORS document]: docs/AUTHORS.md
+[Logo]: resources/logo.png
+[Logo2]: resources/logo2.png
 [FMMidi]: http://unhaut.epizy.com/fmmidi
 [dr_wav]: https://github.com/mackron/dr_libs
 [PicoJSON]: https://github.com/kazuho/picojson

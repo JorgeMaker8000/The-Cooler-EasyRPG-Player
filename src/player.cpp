@@ -134,6 +134,7 @@ namespace Player {
 	std::string command_line;
 	int speed_modifier = 3;
 	int speed_modifier_plus = 10;
+	int rng_seed = -1;
 	Game_ConfigPlayer player_config;
 	Game_ConfigGame game_config;
 #ifdef EMSCRIPTEN
@@ -180,7 +181,11 @@ void Player::Init(std::vector<std::string> args) {
 	Output::Debug("CLI: {}", command_line);
 
 	Game_Clock::logClockInfo();
-	Rand::SeedRandomNumberGenerator(time(NULL));
+	if (rng_seed < 0) {
+		Rand::SeedRandomNumberGenerator(time(NULL));
+	} else {
+		Rand::SeedRandomNumberGenerator(rng_seed);
+	}
 
 	Main_Data::Init();
 
@@ -564,8 +569,8 @@ Game_Config Player::ParseCommandLine() {
 			// overwrite start map by filename
 		}*/
 		if (cp.ParseNext(arg, 1, "--seed")) {
-			if (arg.ParseValue(0, li_value)) {
-				Rand::SeedRandomNumberGenerator(li_value);
+			if (arg.ParseValue(0, li_value) && li_value > 0) {
+				rng_seed = li_value;
 			}
 			continue;
 		}
@@ -759,7 +764,6 @@ void Player::CreateGameObjects() {
 	auto exeis = FileFinder::Game().OpenFile(EXE_NAME);
 
 	if (exeis) {
-		Output::Debug("Analyzing RPG_RT {}", exeis.GetName());
 		exe_reader.reset(new EXEReader(std::move(exeis)));
 		Cache::exfont_custom = exe_reader->GetExFont();
 		if (!Cache::exfont_custom.empty()) {
@@ -769,7 +773,11 @@ void Player::CreateGameObjects() {
 		if (engine == EngineNone) {
 			auto version_info = exe_reader->GetFileInfo();
 			version_info.Print();
-			engine = version_info.GetEngineType();
+			bool is_patch_maniac;
+			engine = version_info.GetEngineType(is_patch_maniac);
+			if (!game_config.patch_override) {
+				game_config.patch_maniac.Set(is_patch_maniac);
+			}
 		}
 
 		if (engine == EngineNone) {
@@ -781,7 +789,7 @@ void Player::CreateGameObjects() {
 #endif
 
 	if (exfont_stream) {
-		Output::Debug("Using custom ExFont: {}", exfont_stream.GetName());
+		Output::Debug("Using custom ExFont: {}", FileFinder::GetPathInsideGamePath(exfont_stream.GetName()));
 		Cache::exfont_custom = Utils::ReadStream(exfont_stream);
 	}
 
@@ -1176,6 +1184,8 @@ void Player::LoadSavegame(const std::string& save_name, int save_id) {
 	if (!load_on_map) {
 		Scene::Push(std::make_shared<Scene_Map>(save_id));
 	} else {
+		// Increment frame counter for consistency with a normal savegame load
+		IncFrame();
 		Scene::instance->Start();
 	}
 }
@@ -1239,7 +1249,7 @@ void Player::SetupBattleTest() {
 		}
 
 		Output::Debug("BattleTest Mode 2k3 troop=({}) background=({}) formation=({}) condition=({}) terrain=({})",
-				args.troop_id, args.background.c_str(), args.formation, args.condition, args.terrain_id);
+				args.troop_id, args.background, static_cast<int>(args.formation), static_cast<int>(args.condition), args.terrain_id);
 	} else {
 		Output::Debug("BattleTest Mode 2k troop=({}) background=({})", args.troop_id, args.background);
 	}
